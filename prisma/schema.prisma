@@ -6,10 +6,17 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+model Sales {
+  id        Int      @id @default(autoincrement())
+  product   String
+  quantity  Int
+  price     Float
+  date      DateTime @default(now())
 }

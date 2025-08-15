@@ -1,103 +1,207 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState, useRef, useEffect } from "react";
+import { SendHorizonal } from "lucide-react";
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function HomePage() {
+  const [messages, setMessages] = useState<{ sender: string; text: string | any[] }[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, typing]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`;
+    }
+  }, [input]);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const userMessage = { sender: "user", text: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setLoading(true);
+    setTyping(true);
+
+    try {
+      const res = await fetch("/api/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: input }),
+      });
+
+      const data = await res.json();
+      setLoading(false);
+
+      setTimeout(() => {
+        setMessages((prev) => [...prev, { sender: "bot", text: data.result }]);
+        setTyping(false);
+      }, 800);
+    } catch (err) {
+      console.error(err);
+      setMessages((prev) => [...prev, { sender: "bot", text: "⚠️ Error fetching data." }]);
+      setLoading(false);
+      setTyping(false);
+    }
+  };
+
+  const renderMessage = (msg: { sender: string; text: string | any[] }) => {
+    if (Array.isArray(msg.text) && msg.text.length > 0 && typeof msg.text[0] === "object") {
+      const headers = Object.keys(msg.text[0]);
+      return (
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="min-w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <thead className="bg-gray-200 dark:bg-gray-700">
+              <tr>
+                {headers.map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-2 border-b border-gray-300 dark:border-gray-600 text-left font-medium"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {msg.text.map((row: any, i: number) => (
+                <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-900">
+                  {headers.map((h) => (
+                    <td key={h} className="px-4 py-2 border-b border-gray-300 dark:border-gray-600">
+                      {String(row[h])}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      );
+    }
+    return <span>{String(msg.text)}</span>;
+  };
+
+  return (
+    <div className={`flex flex-col h-screen`}>
+      {/* Navbar */}
+      <nav className="flex items-center justify-between px-6 py-3 bg-blue-600 text-white dark:bg-gray-900">
+        <h1 className="text-lg font-semibold">NL2SQL Chat</h1>
+      </nav>
+
+      {/* Title Section */}
+      <div className="px-6 py-4 bg-gray-100 dark:bg-gray-800 w-full text-center shadow-sm">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
+          Natural Language to SQL Query Assistant
+        </h2>
+      </div>
+
+      {/* Chat Container */}
+      <div className="flex-1 bg-gray-100 dark:bg-gray-800 flex flex-col items-center">
+        <div className="shadow-lg rounded-xl w-[70%] h-[90%] flex flex-col overflow-hidden bg-white dark:bg-gray-900 mt-4">
+          {/* Chat Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-800 no-scrollbar">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[85%] px-4 py-2 rounded-lg shadow-sm fade-in ${
+                    msg.sender === "user"
+                      ? "bg-blue-200 text-black rounded-br-none"
+                      : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-bl-none border border-gray-200 dark:border-gray-600"
+                  }`}
+                >
+                  {renderMessage(msg)}
+                </div>
+              </div>
+            ))}
+
+            {typing && (
+              <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400">
+                <span className="dot"></span>
+                <span className="dot delay-150"></span>
+                <span className="dot delay-300"></span>
+              </div>
+            )}
+
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Input */}
+          <div className=" bg-white dark:bg-gray-900 dark:border-gray-700 p-3">
+            <div className="relative flex items-end">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())
+                }
+                className="w-full resize-none border dark:border-gray-700 rounded-lg px-3 py-2 pr-12 focus:outline-none focus:ring focus:ring-blue-300 max-h-[150px] overflow-y-auto no-scrollbar bg-white dark:bg-gray-800 dark:text-white"
+                rows={1}
+              />
+              <div className="absolute right-2 bottom-2">
+                <button
+                  onClick={handleSend}
+                  disabled={loading}
+                  className="text-blue-500 hover:text-blue-600 disabled:opacity-50"
+                >
+                  <SendHorizonal className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Styles */}
+      <style jsx>{`
+        .fade-in {
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(5px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .dot {
+          width: 8px;
+          height: 8px;
+          background-color: gray;
+          border-radius: 50%;
+          display: inline-block;
+          animation: bounce 0.6s infinite alternate;
+        }
+        .delay-150 {
+          animation-delay: 0.15s;
+        }
+        .delay-300 {
+          animation-delay: 0.3s;
+        }
+        @keyframes bounce {
+          to {
+            transform: translateY(-4px);
+          }
+        }
+        .no-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 }
