@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { SendHorizonal } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function HomePage() {
   const [messages, setMessages] = useState<{ sender: string; text: string | any[] }[]>([]);
@@ -10,6 +12,7 @@ export default function HomePage() {
   const [typing, setTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const MEMORY_LIMIT = 5; 
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -32,10 +35,20 @@ export default function HomePage() {
     setTyping(true);
 
     try {
+      const recentHistory = [...messages, userMessage]
+        .slice(-MEMORY_LIMIT) // only last N turns
+        .map((m) => ({
+          role: m.sender === "user" ? "user" : "assistant",
+          content: m.text
+        }));
+
       const res = await fetch("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input }),
+        body: JSON.stringify({
+          question: input,
+          history: recentHistory
+        }),
       });
 
       const data = await res.json();
@@ -54,6 +67,7 @@ export default function HomePage() {
   };
 
   const renderMessage = (msg: { sender: string; text: string | any[] }) => {
+    // Table rendering
     if (Array.isArray(msg.text) && msg.text.length > 0 && typeof msg.text[0] === "object") {
       const headers = Object.keys(msg.text[0]);
       return (
@@ -86,6 +100,31 @@ export default function HomePage() {
         </div>
       );
     }
+
+    // Markdown-style rendering for long plain text
+    if (typeof msg.text === "string") {
+      return (
+        <div className="prose dark:prose-invert max-w-none prose-sm sm:prose-base leading-relaxed">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+              code: ({node, ...props}) => (
+                <code className="bg-gray-200 dark:bg-gray-800 px-1 rounded" {...props} />
+              ),
+              ul: ({node, ...props}) => (
+                <ul className="list-disc ml-5 space-y-1" {...props} />
+              ),
+              ol: ({node, ...props}) => (
+                <ol className="list-decimal ml-5 space-y-1" {...props} />
+              )
+            }}
+          >{msg.text}</ReactMarkdown>
+        </div>
+      );
+    }
+
+    // Fallback for any unknown format
     return <span>{String(msg.text)}</span>;
   };
 
@@ -93,19 +132,20 @@ export default function HomePage() {
     <div className={`flex flex-col h-screen`}>
       {/* Navbar */}
       <nav className="flex items-center justify-between px-6 py-3 bg-blue-600 text-white dark:bg-gray-900">
-        <h1 className="text-lg font-semibold">NL2SQL Chat</h1>
+        <h1 className="text-lg font-semibold">LangQuery</h1>
       </nav>
 
       {/* Title Section */}
       <div className="px-6 py-4 bg-gray-100 dark:bg-gray-800 w-full text-center shadow-sm">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
-          Natural Language to SQL Query Assistant
+          AI-Powered Database Insights
         </h2>
       </div>
 
       {/* Chat Container */}
-      <div className="flex-1 bg-gray-100 dark:bg-gray-800 flex flex-col items-center">
-        <div className="shadow-lg rounded-xl w-[70%] h-[90%] flex flex-col overflow-hidden bg-white dark:bg-gray-900 mt-4">
+      <div className="flex-1 bg-gray-100 dark:bg-gray-800 flex flex-col items-center overflow-hidden">
+        <div className="shadow-lg rounded-xl w-[70%] flex flex-col h-[90%] bg-white dark:bg-gray-900 mt-4">
+          
           {/* Chat Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-800 no-scrollbar">
             {messages.map((msg, idx) => (
@@ -134,7 +174,7 @@ export default function HomePage() {
           </div>
 
           {/* Input */}
-          <div className=" bg-white dark:bg-gray-900 dark:border-gray-700 p-3">
+          <div className="bg-white dark:bg-gray-900 dark:border-gray-700 p-3">
             <div className="relative flex items-end">
               <textarea
                 ref={textareaRef}
