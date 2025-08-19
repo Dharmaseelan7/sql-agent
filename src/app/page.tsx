@@ -148,29 +148,60 @@ export default function HomePage() {
           
           {/* Chat Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-800 no-scrollbar">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[85%] px-4 py-2 rounded-lg shadow-sm fade-in ${
-                    msg.sender === "user"
-                      ? "bg-blue-200 text-black rounded-br-none"
-                      : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-bl-none border border-gray-200 dark:border-gray-600"
-                  }`}
-                >
-                  {renderMessage(msg)}
-                </div>
+            {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 space-y-6">
+              <p className="text-center text-base font-medium">
+                💡 Try asking me something like
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
+                {[
+                  "Show total sales by product",
+                  "List top 5 customers by revenue",
+                  "Get average order value for last month",
+                  "Find all orders from New York",
+                  "Monthly growth rate by category",
+                  "Show me inactive customers",
+                ].map((prompt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setInput(prompt)}
+                    className="px-4 py-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition text-left"
+                  >
+                    {prompt}
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+            ) : (
+              <>
+                {messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[85%] px-4 py-2 rounded-lg shadow-sm fade-in ${
+                        msg.sender === "user"
+                          ? "bg-blue-200 text-black rounded-br-none"
+                          : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-bl-none border border-gray-200 dark:border-gray-600"
+                      }`}
+                    >
+                      {renderMessage(msg)}
+                    </div>
+                  </div>
+                ))}
 
-            {typing && (
-              <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400">
-                <span className="dot"></span>
-                <span className="dot delay-150"></span>
-                <span className="dot delay-300"></span>
-              </div>
+                {typing && (
+                  <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400">
+                    <span className="dot"></span>
+                    <span className="dot delay-150"></span>
+                    <span className="dot delay-300"></span>
+                  </div>
+                )}
+
+                <div ref={chatEndRef} />
+              </>
             )}
-
-            <div ref={chatEndRef} />
           </div>
 
           {/* Input */}
